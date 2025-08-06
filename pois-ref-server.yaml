@@ -185,7 +185,7 @@ Resources:
     Properties:
       Description: Lambda to handle ESAM requests and responses
       Role: !GetAtt LambdaRole.Arn
-      Runtime: python3.8
+      Runtime: python3.12
       Handler: index.lambda_handler
       Timeout: 10
       MemorySize: 10240
@@ -215,7 +215,7 @@ Resources:
     Properties:
       Description: Function that handles API request to populate and configure POIS reference server
       Role: !GetAtt LambdaRole.Arn
-      Runtime: python3.8
+      Runtime: python3.12
       Handler: index.lambda_handler
       Timeout: 10
       MemorySize: 10240
@@ -245,7 +245,7 @@ Resources:
     Properties:
       Description: Lambda function to copy solution files to destination bucket
       Role: !GetAtt LambdaRole.Arn
-      Runtime: python3.8
+      Runtime: python3.12
       Handler: index.lambda_handler
       Timeout: 35
       MemorySize: 10240
@@ -307,7 +307,7 @@ Resources:
               http = urllib3.PoolManager()
 
               # Manifest File containning URL's on github
-              cloudformation_manifest = "https://raw.githubusercontent.com/scunning1987/pois_reference_server/main/manifest.txt"
+              cloudformation_manifest = "https://raw.githubusercontent.com/MFlyer/pois_reference_server/main/manifest.txt"
 
               # Pull global env variable to variable
               bucket = os.environ['BUCKET']
@@ -432,7 +432,7 @@ Resources:
     Properties:
       Description: Lambda Layer containing Python library XMLtoDict - XML Parser
       CompatibleRuntimes:
-        - python3.8
+        - python3.12
       Content:
         S3Bucket: !Ref S3Bucket
         S3Key: !GetAtt FileMover.xmltodict
@@ -444,7 +444,7 @@ Resources:
     Properties:
       Description: Lambda Layer containing Python library ThreeFive
       CompatibleRuntimes:
-        - python3.8
+        - python3.12
       Content:
         S3Bucket: !Ref S3Bucket
         S3Key: !GetAtt FileMover.threefive
