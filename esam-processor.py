@@ -1,15 +1,10 @@
-import json
 import boto3
 import datetime
 import time
 import logging
-import math
 import os
 import xmltodict
 import threefive
-from threefive import Cue
-import copy
-import binascii
 
 LOGGER = logging.getLogger()
 LOGGER.setLevel(logging.INFO)
@@ -533,7 +528,7 @@ def lambda_handler(event, context):
                                             custom_status_code['@classCode'] = 0
                                     else:
                                         custom_status_code['@classCode'] = 0
-
+                            custom_status_code_rule_match = "Processing completed, replace rule applied"
                             # add to descriptors
                             if len(descriptors_dict) > 0:
 
@@ -542,112 +537,7 @@ def lambda_handler(event, context):
                             #
                             # Build SCTE35 signal
                             #
-                            cue = threefive.Cue()
-                            cmd = threefive.TimeSignal()
-
-                            if "splice_immediate_flag" in scte_35_dict['command'].keys():
-                                if scte_35_dict['command']['splice_immediate_flag'] == True:
-                                    cmd.splice_immediate_flag = True
-                                    cmd.time_specified_flag = False
-                                else:
-                                    cmd.time_specified_flag = True
-                                    cmd.pts_time = scte_35_dict['command']['pts_time']
-                                    cmd.pts_ticks = scte_35_dict['command']['pts_ticks']
-                                    cmd.break_auto_return = True
-                            else:
-                                cmd.time_specified_flag = True
-                                cmd.pts_time = scte_35_dict['command']['pts_time']
-                                cmd.pts_ticks = scte_35_dict['command']['pts_ticks']
-                                cmd.break_auto_return = True
-
-                                scte_duration_ticks = 2700000
-                                scte_duration = 30.00
-                                if scte_35_dict['info_section']['splice_command_type'] == 5:
-                                    try:
-                                        scte_duration = scte_35_dict['command']['break_duration']
-                                        scte_duration_ticks = scte_35_dict['command']['break_ticks']
-                                    except:
-                                        LOGGER.info("No duration field on segmentation descriptor")
-                                else:
-                                    try:
-                                        scte_duration = scte_35_dict['descriptors'][0]['segmentation_duration']
-                                        scte_duration_ticks = scte_35_dict['descriptors'][0]['segmentation_duration_ticks']
-                                    except:
-                                        LOGGER.info("No duration field on segmentation descriptor")
-
-                            cue.command = cmd
-                            cue.info_section.pts_adjustment = scte_35_dict['info_section']['pts_adjustment']
-                            cue.info_section.pts_adjustment_ticks = scte_35_dict['info_section']['pts_adjustment_ticks']
-
-                            tsdescriptor = threefive.SegmentationDescriptor(None)
-                            tsdescriptor.provider_avail_id = 1
-                            tsdescriptor.segmentation_event_id = 1
-                            tsdescriptor.segmentation_duration_flag = True
-                            tsdescriptor.delivery_not_restricted_flag = False
-                            tsdescriptor.web_delivery_allowed_flag = False
-                            tsdescriptor.no_regional_blackout_flag = False
-                            tsdescriptor.archive_allowed_flag = True
-                            tsdescriptor.segmentation_duration = scte_duration
-                            tsdescriptor.segmentation_duration_ticks = 2700000
-                            tsdescriptor.segmentation_upid_type = 9
-                            tsdescriptor.segmentation_upid = 00
-                            tsdescriptor.segmentation_type_id = 52
-                            tsdescriptor.segment_num = 0
-                            tsdescriptor.segments_expected = 0
-                            tsdescriptor.sub_segment_num = 0
-                            tsdescriptor.sub_segments_expected = 0
-
-                            cmd=threefive.TimeSignal()
-
-                            if scte_35_dict['command']['splice_immediate_flag'] == True:
-                                cmd.splice_immediate_flag = True
-                                cmd.time_specified_flag = False
-                            else:
-                                cmd.time_specified_flag = True
-                                cmd.pts_time = scte_35_dict['command']['pts_time']
-                                cmd.pts_ticks = scte_35_dict['command']['pts_ticks']
-                                cmd.break_auto_return = True
-
-
-
-                            cue.info_section.pts_adjustment = scte_35_dict['info_section']['pts_adjustment']
-                            cue.command = cmd
-
-                            try:
-                                segmentation_event_id_scte = scte_35_dict['descriptors'][0]['segmentation_event_id']
-
-                            except Exception as e:
-                                segmentation_event_id_scte = str(int(time.time()/1000))
-
-                            dscrptr = threefive.SegmentationDescriptor(None)
-                            dscrptr.tag = 2
-                            dscrptr.descriptor_length = 23
-                            dscrptr.name = "Segmentation Descriptor"
-                            dscrptr.identifier = "CUEI"
-                            dscrptr.components = []
-                            dscrptr.segmentation_event_id = segmentation_event_id_scte
-                            dscrptr.segmentation_event_cancel_indicator = False
-                            dscrptr.program_segmentation_flag = True
-                            dscrptr.segmentation_duration_flag = True
-                            dscrptr.segmentation_duration = 30.0
-
-                            dscrptr.delivery_not_restricted_flag = False
-                            dscrptr.web_delivery_allowed_flag = False
-                            dscrptr.no_regional_blackout_flag = False
-                            dscrptr.archive_allowed_flag = True
-                            dscrptr.device_restrictions = "No Restrictions"
-                            dscrptr.segmentation_message = "Provider Placement Opportunity Start"
-                            dscrptr.segmentation_upid_type = 9
-                            dscrptr.segmentation_upid_type_name = "Deprecated"
-                            dscrptr.segmentation_upid_length = 0
-                            dscrptr.segmentation_upid = ""
-                            dscrptr.segmentation_type_id = 52
-                            dscrptr.segment_num = 0
-                            dscrptr.sub_segments_expected = 0
-                            dscrptr.sub_segment_num = 0
-                            dscrptr.segments_expected = 1
-
-                            cue.descriptors.append(dscrptr)
+                            cue = threefive.Cue(scte_35_dict)
 
                             try:
                                 sig_binary_data = cue.encode()
@@ -695,12 +585,10 @@ def lambda_handler(event, context):
                                     else:
                                         cmd.time_specified_flag = True
                                         cmd.pts_time = scte_35_dict['command']['pts_time']
-                                        cmd.pts_ticks = scte_35_dict['command']['pts_ticks']
                                         cmd.break_auto_return = True
                                 else:
                                     cmd.time_specified_flag = True
                                     cmd.pts_time = scte_35_dict['command']['pts_time']
-                                    cmd.pts_ticks = scte_35_dict['command']['pts_ticks']
                                     cmd.break_auto_return = True
 
                                     try:
@@ -709,7 +597,6 @@ def lambda_handler(event, context):
                                         scte_duration = 30.00
 
                                 cue.info_section.pts_adjustment = scte_35_dict['info_section']['pts_adjustment']
-                                cue.info_section.pts_adjustment_ticks = scte_35_dict['info_section']['pts_adjustment_ticks']
 
                                 cue.command = cmd
 
